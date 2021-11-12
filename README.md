@@ -1,5 +1,7 @@
 # Kaniko image builder
 
+**This is a fork that will build a list of images specified in a file.**
+
 This Action uses the [kaniko](https://github.com/GoogleContainerTools/kaniko) executor instead of the docker daemon. Kaniko builds the image
 by extracting the filesystem of the base image, making the changes in the user space, snapshotting any change and appending it to the base
 image filesystem.

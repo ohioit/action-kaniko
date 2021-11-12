@@ -18,6 +18,9 @@ inputs:
   password:
     description: "Password used for authentication to the Docker registry"
     required: false
+  image_list: 
+    description: "A file containing a list of images to build.  If this is specified the image, tag, and path parameters will be ignored."
+    required: false
   image:
     description: "Image name"
     required: true
