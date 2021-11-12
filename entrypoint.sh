@@ -22,6 +22,15 @@ function ensure() {
     fi
 }
 
+function trim() {
+    local var="$*"
+    # remove leading whitespace characters
+    var="${var#"${var%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    var="${var%"${var##*[![:space:]]}"}"   
+    printf '%s' "$var"
+}
+
 export REGISTRY=${INPUT_REGISTRY:-"docker.io"}
 export USERNAME=${INPUT_USERNAME:-$GITHUB_ACTOR}
 export PASSWORD=${INPUT_PASSWORD:-$GITHUB_TOKEN}
@@ -37,18 +46,38 @@ export CACHE=$CACHE${INPUT_CACHE_DIRECTORY:+" --cache-dir=$INPUT_CACHE_DIRECTORY
 
 export BRANCH=$(echo ${GITHUB_REF} | sed -E "s/refs\/(heads|tags)\///g" | sed -e "s/\//-/g")
 
-if [ -z "${INPUT_IMAGE_LIST}" ]; then
-    export INPUT_IMAGE_LIST=".images.${$}"
-    export TAG=${INPUT_TAG:-$([ "$BRANCH" == "master" ] && echo latest || echo $BRANCH)}
-    export TAG=${TAG:-"latest"}
-    export TAG=${TAG#$INPUT_STRIP_TAG_PREFIX}
 
-    echo "${INPUT_PATH} ${INPUT_IMAGE} ${TAG}" > ${INPUT_IMAGE_LIST}
+if [ -z "${INPUT_IMAGE_LIST_FILE:+x}" ]
+then
+    export INPUT_IMAGE_LIST_FILE="${GITHUB_WORKSPACE}/.images.${$}"
+
+    if [  ! -z "${INPUT_IMAGE_LIST:+x}" ]
+    then
+        echo "Using INPUT_IMAGE_LIST for list of images"
+        echo "${INPUT_IMAGE_LIST}" \
+            | sed -e 's/,/\n/g' \
+            | awk 'BEGIN {FS=":"} {print $1 " " $2}' \
+            > ${INPUT_IMAGE_LIST_FILE}
+    else 
+        echo "Using INPUT_IMAGE for list of images"
+        export TAG=${INPUT_TAG:-$([[ "$BRANCH" == "master"  || "$BRANCH" == "main" ]] && echo latest || echo $BRANCH)}
+        export TAG=${TAG:-"latest"}
+        export TAG=${TAG#$INPUT_STRIP_TAG_PREFIX}
+
+        echo "${INPUT_PATH} ${INPUT_IMAGE} ${TAG}" > ${INPUT_IMAGE_LIST_FILE}
+    fi
+else 
+    echo "Using INPUT_IMAGE_LIST_FILE for list of images"
 fi
 
 while read -r INPUT_PATH INPUT_IMAGE INPUT_TAG
 do
+    INPUT_PATH=$(trim ${INPUT_PATH})
+    INPUT_IMAGE=$(trim ${INPUT_IMAGE})
+    INPUT_TAG=$(trim ${INPUT_TAG})
+
     echo "Processing: context: [${INPUT_PATH}] image: [${INPUT_IMAGE}] tag: [${INPUT_TAG}]"
+
     export IMAGE=${INPUT_IMAGE}
     export TAG=${INPUT_TAG:-$([ "$BRANCH" == "master" ] && echo latest || echo $BRANCH)}
     export TAG=${TAG:-"latest"}
@@ -62,7 +91,7 @@ do
     ensure "${TAG}" "tag"
     ensure "${CONTEXT_PATH}" "path"
 
-    if [ "$REGISTRY" == "docker.pkg.github.com" ]; then
+    if [ "$REGISTRY" == "ghcr.io" ]; then
         IMAGE_NAMESPACE="$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]')"
         export IMAGE="$IMAGE_NAMESPACE/$IMAGE"
         export REPOSITORY="$IMAGE_NAMESPACE/$REPOSITORY"
@@ -119,8 +148,8 @@ EOF
     if [ ! -z $INPUT_SKIP_UNCHANGED_DIGEST ]; then
         export DIGEST=$(cat digest)
 
-        if [ "$REGISTRY" == "docker.pkg.github.com" ]; then
-            wget -q -O manifest --header "Authorization: Basic $(echo -n $USERNAME:$PASSWORD | base64)" https://docker.pkg.github.com/v2/$REPOSITORY/manifests/latest || true
+        if [ "$REGISTRY" == "ghcr.io" ]; then
+            wget -q -O manifest --header "Authorization: Basic $(echo -n $USERNAME:$PASSWORD | base64)" https://ghcr.io/v2/$REPOSITORY/manifests/latest || true
             export REMOTE="sha256:$(cat manifest | sha256sum | awk '{ print $1 }')"
         else
             export REMOTE=$(reg digest -u $USERNAME -p $PASSWORD $REGISTRY/$REPOSITORY | tail -1)
@@ -144,4 +173,4 @@ EOF
     
         echo "Done 🎉️"
     fi
-done < ${INPUT_IMAGE_LIST}
+done < ${INPUT_IMAGE_LIST_FILE}
