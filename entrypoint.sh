@@ -3,14 +3,15 @@ set -e pipefail
 set +x
 
 # Process a newline separted list of images where each line has the following format:
-#   context image_name tag
+#   context image_name tag dockerfile_name
 # 
 # context - the kaniko image build context
 # image_name - the image name
 # tag - the tag to use for the image
+# dockerfile_name - name of the Dockerfile
 # e.g.
-#     resource cad/coi-resource v3.4.0
-#     ui cad/coi-uiv 3.4.0 
+#     resource cad/coi-resource v3.4.0 Dockerfile
+#     ui cad/coi-uiv 3.4.0 Dockerfile.ui
 #
 # All image will be pushed to the same registry
 #
