@@ -75,7 +75,7 @@ do
     INPUT_TAG=$(trim ${INPUT_TAG})
     INPUT_DOCKERFILE=$(trim ${INPUT_DOCKERFILE})
 
-    echo "Processing: context: [${INPUT_PATH}] image: [${INPUT_IMAGE}] tag: [${INPUT_TAG}]"
+    echo "Processing: context: [${INPUT_PATH}] image: [${INPUT_IMAGE}] tag: [${INPUT_TAG}] dockerfile: [${INPUT_DOCKERFILE}]"
 
     export IMAGE=${INPUT_IMAGE}
     export TAG=${INPUT_TAG:-$([ "$BRANCH" == "master" ] && echo latest || echo $BRANCH)}
