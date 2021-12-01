@@ -80,10 +80,10 @@ with:
   image_list: images
 ```
 
-The content of the `images` file is shown below.  Each line in the file must have the format `build_context image_name image_tag`.
+The content of the `images` file is shown below.  Each line in the file must have the format `build_context image_name image_tag name_dockerfile`.
 ```prose
-. my_image_name v1.0.0
-resource my_image_name_2 v1.2.4
+. my_image_name v1.0.0 Dockerfile
+resource my_image_name_2 v1.2.4 Dockerfile.dev
 ```
 
 **Here is where it gets specific, as the optional arguments become required depending on the registry targeted**

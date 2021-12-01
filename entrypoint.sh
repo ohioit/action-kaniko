@@ -51,30 +51,29 @@ if [ -z "${INPUT_IMAGE_LIST_FILE:+x}" ]
 then
     export INPUT_IMAGE_LIST_FILE="${GITHUB_WORKSPACE}/.images.${$}"
 
-    if [  ! -z "${INPUT_IMAGE_LIST:+x}" ]
+    if [  ! -z "${INPUT_IMAGE:+x}" ]
     then
-        echo "Using INPUT_IMAGE_LIST for list of images"
-        echo "${INPUT_IMAGE_LIST}" \
-            | sed -e 's/,/\n/g' \
-            | awk 'BEGIN {FS=":"} {print $1 " " $2}' \
-            > ${INPUT_IMAGE_LIST_FILE}
-    else 
         echo "Using INPUT_IMAGE for list of images"
         export TAG=${INPUT_TAG:-$([[ "$BRANCH" == "master"  || "$BRANCH" == "main" ]] && echo latest || echo $BRANCH)}
         export TAG=${TAG:-"latest"}
         export TAG=${TAG#$INPUT_STRIP_TAG_PREFIX}
 
-        echo "${INPUT_PATH} ${INPUT_IMAGE} ${TAG}" > ${INPUT_IMAGE_LIST_FILE}
+        echo "${INPUT_PATH} ${INPUT_IMAGE} ${TAG} ${INPUT_BUILD_FILE:-Dockerfile}" > ${INPUT_IMAGE_LIST_FILE}
+    else 
+        echo "Using ais build image config"
+        yq eval '.images[]  | .context + " " + .imageName + " " + .imageTag + " " + (.docker.dockerfile // "Dockerfile")' ais-build.yaml \
+            > ${INPUT_IMAGE_LIST_FILE}
     fi
 else 
     echo "Using INPUT_IMAGE_LIST_FILE for list of images"
 fi
 
-while read -r INPUT_PATH INPUT_IMAGE INPUT_TAG
+while read -r INPUT_PATH INPUT_IMAGE INPUT_TAG INPUT_DOCKERFILE
 do
     INPUT_PATH=$(trim ${INPUT_PATH})
     INPUT_IMAGE=$(trim ${INPUT_IMAGE})
     INPUT_TAG=$(trim ${INPUT_TAG})
+    INPUT_DOCKERFILE=$(trim ${INPUT_DOCKERFILE})
 
     echo "Processing: context: [${INPUT_PATH}] image: [${INPUT_IMAGE}] tag: [${INPUT_TAG}]"
 
@@ -116,7 +115,7 @@ do
     fi
 
     export CONTEXT="--context $GITHUB_WORKSPACE/$CONTEXT_PATH"
-    export DOCKERFILE="--dockerfile $CONTEXT_PATH/${INPUT_BUILD_FILE:-Dockerfile}"
+    export DOCKERFILE="--dockerfile $CONTEXT_PATH/${INPUT_DOCKERFILE}"
     export TARGET=${INPUT_TARGET:+"--target=$INPUT_TARGET"}
 
     if [ ! -z $INPUT_SKIP_UNCHANGED_DIGEST ]; then
@@ -127,7 +126,6 @@ do
             export DESTINATION="$DESTINATION --destination $IMAGE_LATEST"  
         fi
     fi
-
 
     export ARGS="$CACHE $CONTEXT $DOCKERFILE $TARGET $DESTINATION $INPUT_EXTRA_ARGS"
 

@@ -15,7 +15,11 @@ RUN wget -O /kaniko/jq \
     wget -O /crane.tar.gz \ 
     https://github.com/google/go-containerregistry/releases/download/v0.1.1/go-containerregistry_Linux_x86_64.tar.gz && \
     tar -xvzf /crane.tar.gz crane -C /kaniko && \
-    rm /crane.tar.gz
+    rm /crane.tar.gz && \
+    wget -O /yq_linux_386.tar.gz https://github.com/mikefarah/yq/releases/download/v4.15.1/yq_linux_386.tar.gz && \
+    tar -zxvf /yq_linux_386.tar.gz ./yq_linux_386 -C /kaniko && \
+    mv /kaniko/yq_linux_386 /kaniko/yq && \
+    rm /yq_linux_386.tar.gz
 
 COPY entrypoint.sh /
 COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
