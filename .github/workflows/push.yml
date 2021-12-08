@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@master
 
       - name: GitHub Package Registry
-        uses: ohioit/action-kaniko@multi-image-support
+        uses: ohioit/action-kaniko@master
         with:
           registry: ghcr.io
           password: ${{ secrets.GITHUB_TOKEN }}
